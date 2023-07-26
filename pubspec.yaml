@@ -7,7 +7,7 @@ environment:
   sdk: ">=2.19.0 <3.0.0"
 
 dependencies:
-  web_socket_channel: ^2.0.0
+  web_socket_channel: ^2.4.0
 
 dev_dependencies:
   mocktail: ^0.3.0
