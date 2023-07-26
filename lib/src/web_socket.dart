@@ -105,7 +105,6 @@ class WebSocket {
       _channel!.stream.listen(
         (event) {
           try {
-            print(_messageController.isClosed);
             if (_messageController.isClosed) return;
             _messageController.add(event);
           } catch (e) {
