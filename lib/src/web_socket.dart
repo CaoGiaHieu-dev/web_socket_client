@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'package:web_socket_client/src/_web_socket_channel/_web_socket_channel.dart'
@@ -103,12 +104,12 @@ class WebSocket {
 
       _channel = getWebSocketChannel(ws);
       _channel!.stream.listen(
-        (event) {
+        (message) {
           try {
             if (_messageController.isClosed) return;
-            _messageController.add(event);
+            _messageController.add(message);
           } catch (e) {
-            print(e);
+            log(e.toString());
           }
         },
         onDone: attemptToReconnect,
