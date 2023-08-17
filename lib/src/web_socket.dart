@@ -75,16 +75,20 @@ class WebSocket {
 
     void attemptToReconnect([Object? error, StackTrace? stackTrace]) {
       if (_isClosedByClient || _isReconnecting || _isDisconnecting) return;
-      _connectionController.add(
-        Disconnected(
-          code: _channel?.closeCode,
-          reason: _channel?.closeReason,
-          error: error,
-          stackTrace: stackTrace,
-        ),
-      );
-      _channel = null;
-      _reconnect();
+      try {
+        _connectionController.add(
+          Disconnected(
+            code: _channel?.closeCode,
+            reason: _channel?.closeReason,
+            error: error,
+            stackTrace: stackTrace,
+          ),
+        );
+        _channel = null;
+        _reconnect();
+      } catch (e) {
+        log(e.toString());
+      }
     }
 
     try {
@@ -122,19 +126,22 @@ class WebSocket {
 
   Future<void> _reconnect() async {
     if (_isClosedByClient || _isConnected) return;
+    try {
+      _connectionController.add(const Reconnecting());
 
-    _connectionController.add(const Reconnecting());
+      await _connect();
 
-    await _connect();
+      if (_isClosedByClient || _isConnected) {
+        _backoff.reset();
+        _backoffTimer?.cancel();
+        return;
+      }
 
-    if (_isClosedByClient || _isConnected) {
-      _backoff.reset();
       _backoffTimer?.cancel();
-      return;
+      _backoffTimer = Timer(_backoff.next(), _reconnect);
+    } catch (e) {
+      log(e.toString());
     }
-
-    _backoffTimer?.cancel();
-    _backoffTimer = Timer(_backoff.next(), _reconnect);
   }
 
   /// The stream of messages received from the WebSocket server.
@@ -148,17 +155,16 @@ class WebSocket {
   void send(dynamic message) => _channel?.sink.add(message);
 
   /// Closes the connection and frees any resources.
-  void close([int? code, String? reason]) {
+  Future<void> close([int? code, String? reason]) async {
     if (_connectionController.state is Disconnected) return;
     _isClosedByClient = true;
     _backoffTimer?.cancel();
     _connectionController.add(const Disconnecting());
-    Future.wait<void>([
-      if (_channel != null) _channel!.sink.close(code, reason),
-    ]).whenComplete(() {
-      _connectionController.add(Disconnected(code: code, reason: reason));
-      _messageController.close();
-      _connectionController.close();
-    });
+    if (_channel != null) {
+      await _channel!.sink.close(code, reason);
+    }
+    _connectionController.add(Disconnected(code: code, reason: reason));
+    await _messageController.close();
+    _connectionController.close();
   }
 }
