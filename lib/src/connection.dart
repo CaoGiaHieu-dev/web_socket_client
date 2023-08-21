@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:developer';
 
 import 'package:web_socket_client/web_socket_client.dart';
 
@@ -40,16 +41,30 @@ class ConnectionController extends Connection {
   }
 
   Stream<ConnectionState> get _stream async* {
-    yield _state;
-    yield* _controller.stream;
+    try {
+      yield _state;
+      yield* _controller.stream;
+    } catch (e) {
+      log(e.toString());
+    }
   }
 
   /// Notifies listeners of a new connection [state].
   void add(ConnectionState state) {
-    _state = state;
-    _controller.add(state);
+    try {
+      _state = state;
+      _controller.add(state);
+    } catch (e) {
+      log(e.toString());
+    }
   }
 
   /// Closes the controller's stream.
-  void close() => _controller.close();
+  void close() {
+    try {
+      _controller.close();
+    } catch (e) {
+      log(e.toString());
+    }
+  }
 }

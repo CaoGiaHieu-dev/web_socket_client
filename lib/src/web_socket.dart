@@ -57,7 +57,9 @@ class WebSocket {
 
   bool get _isConnected {
     final connectionState = _connectionController.state;
-    return connectionState is Connected || connectionState is Reconnected;
+    return connectionState is Connected ||
+        connectionState is Reconnected ||
+        connectionState is Disconnecting;
   }
 
   bool get _isReconnecting {
@@ -145,26 +147,52 @@ class WebSocket {
   }
 
   /// The stream of messages received from the WebSocket server.
-  Stream<dynamic> get messages => _messageController.stream;
+  Stream<dynamic> get messages {
+    try {
+      return _messageController.stream;
+    } catch (e) {
+      log(e.toString());
+      return const Stream<dynamic>.empty();
+    }
+  }
 
   /// The WebSocket [Connection].
-  Connection get connection => _connectionController;
+  Connection get connection {
+    try {
+      return _connectionController;
+    } catch (e) {
+      log(e.toString());
+      return ConnectionController();
+    }
+  }
 
   /// Enqueues the specified data to be transmitted
   /// to the server over the WebSocket connection.
-  void send(dynamic message) => _channel?.sink.add(message);
+  void send(dynamic message) {
+    try {
+      _channel?.sink.add(message);
+    } catch (e) {
+      log(e.toString());
+    }
+  }
 
   /// Closes the connection and frees any resources.
-  Future<void> close([int? code, String? reason]) async {
+  void close([int? code, String? reason]) {
     if (_connectionController.state is Disconnected) return;
     _isClosedByClient = true;
     _backoffTimer?.cancel();
     _connectionController.add(const Disconnecting());
-    if (_channel != null) {
-      await _channel!.sink.close(code, reason);
-    }
-    _connectionController.add(Disconnected(code: code, reason: reason));
-    await _messageController.close();
-    _connectionController.close();
+    Future.wait<void>([
+      _channel!.sink.close(code, reason),
+    ]).whenComplete(() {
+      try {
+        _messageController.close();
+        _connectionController
+          ..add(Disconnected(code: code, reason: reason))
+          ..close();
+      } catch (e) {
+        log(e.toString());
+      }
+    });
   }
 }
