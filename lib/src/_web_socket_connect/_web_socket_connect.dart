@@ -4,6 +4,7 @@ Future<Stream<dynamic>> connect(
   Iterable<String>? protocols,
   Duration? pingInterval,
   String? binaryType,
+  Map<String, dynamic>? headers,
 }) {
   throw UnsupportedError('No implementation of the api provided');
 }

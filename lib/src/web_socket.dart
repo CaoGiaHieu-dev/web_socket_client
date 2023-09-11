@@ -31,12 +31,14 @@ class WebSocket {
     Duration? pingInterval,
     Backoff? backoff,
     Duration? timeout,
+    Map<String, dynamic>? headers,
     String? binaryType,
   })  : _uri = uri,
         _protocols = protocols,
         _pingInterval = pingInterval,
         _backoff = backoff ?? _defaultBackoff,
         _timeout = timeout ?? _defaultTimeout,
+        _headers = headers,
         _binaryType = binaryType {
     _connect();
   }
@@ -47,6 +49,7 @@ class WebSocket {
   final Backoff _backoff;
   final Duration _timeout;
   final String? _binaryType;
+  final Map<String, dynamic>? _headers;
 
   final _messageController = StreamController<dynamic>.broadcast();
   final _connectionController = ConnectionController();
@@ -99,6 +102,7 @@ class WebSocket {
         protocols: _protocols,
         pingInterval: _pingInterval,
         binaryType: _binaryType,
+        headers: _headers,
       ).timeout(_timeout);
 
       final connectionState = _connectionController.state;
@@ -109,6 +113,7 @@ class WebSocket {
       }
 
       _channel = getWebSocketChannel(ws);
+
       _channel!.stream.listen(
         (message) {
           try {
